@@ -1,6 +1,5 @@
 import datetime as dt
 from typing import Any, Dict, List
-from typing import Dict, List
 
 import pandas as pd
 import streamlit as st
@@ -85,24 +84,9 @@ def tela_comercial() -> None:
             telefone = st.text_input("Telefone *", key="novo_comercial_telefone")
             email = st.text_input("E-mail", key="novo_comercial_email")
         with col3:
-            produto = st.selectbox(
-                "Produto",
-                PRODUTOS,
-                index=0,
-                key="novo_comercial_produto",
-            )
-            canal = st.selectbox(
-                "Canal",
-                CANAIS,
-                index=0,
-                key="novo_comercial_canal",
-            )
-            status = st.selectbox(
-                "Status",
-                STATUS_OPCOES,
-                index=0,
-                key="novo_comercial_status",
-            )
+            produto = st.selectbox("Produto", PRODUTOS, index=0, key="novo_comercial_produto")
+            canal = st.selectbox("Canal", CANAIS, index=0, key="novo_comercial_canal")
+            status = st.selectbox("Status", STATUS_OPCOES, index=0, key="novo_comercial_status")
 
         enviar = st.form_submit_button("Salvar registro")
 
@@ -129,9 +113,7 @@ def tela_comercial() -> None:
                 except RuntimeError as exc:
                     st.error(str(exc))
                 else:
-                    st.success(
-                        f"✅ Registro '{cliente.strip()}' adicionado com sucesso (ID: {res.get('id', 'N/D')})."
-                    )
+                    st.success(f"✅ Registro '{cliente.strip()}' adicionado com sucesso (ID: {res.get('id', 'N/D')}).")
                     st.rerun()
 
     st.divider()
@@ -141,7 +123,10 @@ def tela_comercial() -> None:
         st.info("Cadastre oportunidades para habilitar a edição e exclusão.")
         return
 
-   registros_dict: List[Dict[str, Any]] = [row for row in df.to_dict("records") if row.get("id") is not None]
+    # ✅ corrigido aqui (4 espaços)
+    registros_dict: List[Dict[str, Any]] = [
+        row for row in df.to_dict("records") if row.get("id") is not None
+    ]
     if not registros_dict:
         st.info("Os registros retornados não possuem identificadores válidos para edição.")
         return
@@ -181,34 +166,15 @@ def tela_comercial() -> None:
         novo_uf = st.text_input("UF", row.get("uf", ""), max_chars=2, key=f"editar_comercial_uf_{reg_id}")
     with col2:
         novo_nome = st.text_input("Contato", row.get("nome", ""), key=f"editar_comercial_nome_{reg_id}")
-        novo_telefone = st.text_input(
-            "Telefone",
-            row.get("telefone", ""),
-            key=f"editar_comercial_telefone_{reg_id}",
-        )
+        novo_telefone = st.text_input("Telefone", row.get("telefone", ""), key=f"editar_comercial_telefone_{reg_id}")
         novo_email = st.text_input("E-mail", row.get("email", ""), key=f"editar_comercial_email_{reg_id}")
     with col3:
         produto_index = PRODUTOS.index(row.get("produto")) if row.get("produto") in PRODUTOS else 0
-        novo_produto = st.selectbox(
-            "Produto",
-            PRODUTOS,
-            index=produto_index,
-            key=f"editar_comercial_produto_{reg_id}",
-        )
+        novo_produto = st.selectbox("Produto", PRODUTOS, index=produto_index, key=f"editar_comercial_produto_{reg_id}")
         canal_index = CANAIS.index(row.get("canal")) if row.get("canal") in CANAIS else 0
-        novo_canal = st.selectbox(
-            "Canal",
-            CANAIS,
-            index=canal_index,
-            key=f"editar_comercial_canal_{reg_id}",
-        )
+        novo_canal = st.selectbox("Canal", CANAIS, index=canal_index, key=f"editar_comercial_canal_{reg_id}")
         status_index = STATUS_OPCOES.index(row.get("status")) if row.get("status") in STATUS_OPCOES else 0
-        novo_status = st.selectbox(
-            "Status",
-            STATUS_OPCOES,
-            index=status_index,
-            key=f"editar_comercial_status_{reg_id}",
-        )
+        novo_status = st.selectbox("Status", STATUS_OPCOES, index=status_index, key=f"editar_comercial_status_{reg_id}")
 
     observacoes = st.text_area(
         "Observações",
