@@ -112,23 +112,38 @@ def tela_clientes() -> None:
         st.info("Cadastre clientes para habilitar a edição e exclusão.")
         return
 
-    registros: List[Dict[str, Any]] = df.to_dict("records")
+    registros: List[Dict[str, Any]] = [row for row in df.to_dict("records") if row.get("id") is not None]
+    if not registros:
+        st.info("Os registros retornados não possuem identificadores válidos para edição.")
+        return
+
+    registros_por_id = {row["id"]: row for row in registros}
+    opcoes = [None] + list(registros_por_id.keys())
+
+    
+    def _formatar_id(opcao: Any) -> str:
+        if opcao is None:
+            return "Escolha um cliente"
+        registro = registros_por_id.get(opcao)
+        if registro:
+            return _format_option(registro)
+        return f"ID {opcao}"
     cliente_sel = st.selectbox(
         "Selecione o cliente",
-        options=[None] + registros,
-        format_func=lambda opt: "Escolha um cliente" if opt is None else _format_option(opt),
+        options=opcoes,
+        format_func=_formatar_id,
         key="cliente_edicao_select",
     )
 
-    if not cliente_sel:
+    if cliente_sel is None:
         return
 
-    cliente_row = cliente_sel
-    cliente_id = cliente_row.get("id")
-    if cliente_id is None:
-        st.error("Registro selecionado não possui ID válido no Supabase.")
+    cliente_row = registros_por_id.get(cliente_sel)
+    if not cliente_row:
+        st.error("Não foi possível carregar os dados do cliente selecionado.")
         return
 
+    cliente_id = cliente_sel
     col1, col2 = st.columns(2)
     with col1:
         novo_nome = st.text_input("Nome", cliente_row.get("nome", ""), key="editar_cliente_nome")
