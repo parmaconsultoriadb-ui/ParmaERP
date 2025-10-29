@@ -139,23 +139,39 @@ def tela_vagas() -> None:
         st.info("Cadastre vagas para habilitar a edição e exclusão.")
         return
 
-    registros: List[Dict[str, Any]] = df.to_dict("records")
+    registros: List[Dict[str, Any]] = [row for row in df.to_dict("records") if row.get("id") is not None]
+    if not registros:
+        st.info("As vagas retornadas não possuem identificadores válidos para edição.")
+        return
+
+    registros_por_id = {row["id"]: row for row in registros}
+    opcoes = [None] + list(registros_por_id.keys())
+
+    def _formatar_id(opcao: Any) -> str:
+        if opcao is None:
+            return "Escolha uma vaga"
+        registro = registros_por_id.get(opcao)
+        if registro:
+            return _format_vaga(registro)
+        return f"ID {opcao}"
+        
     vaga_sel = st.selectbox(
         "Selecione a vaga",
-        options=[None] + registros,
-        format_func=lambda opt: "Escolha uma vaga" if opt is None else _format_vaga(opt),
+        options=opcoes,
+        format_func=_formatar_id,
         key="vaga_edicao_select",
     )
 
-    if not vaga_sel:
+    if vaga_sel is None:
         return
 
-    vaga_row = vaga_sel
-    vaga_id = vaga_row.get("id")
-    if vaga_id is None:
-        st.error("Registro selecionado não possui ID válido no Supabase.")
+    vaga_row = registros_por_id.get(vaga_sel)
+    if not vaga_row:
+        st.error("Não foi possível carregar os dados da vaga selecionada.")
         return
-
+    
+    vaga_id = vaga_sel
+    
     col1, col2 = st.columns(2)
     with col1:
         novo_cliente = st.text_input("Cliente", vaga_row.get("cliente", ""), key=f"editar_vaga_cliente_{vaga_id}")
