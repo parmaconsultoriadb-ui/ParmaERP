@@ -32,4 +32,4 @@ uuid==1.30
 requests==2.32.3
 
 # Compatibilidade e extras
-pyarrow==17.0.0
+pyarrow==16.1.0
