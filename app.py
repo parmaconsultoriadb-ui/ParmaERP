@@ -1,11 +1,13 @@
 # app.py
 import streamlit as st
+
+from modules.candidatos import tela_candidatos
 from modules.clientes import tela_clientes
-from modules.vagas import tela_vagas   # (adicione depois quando migrar)
-from modules.candidatos import tela_candidatos  # (idem)
-from modules.comercial import tela_comercial   # (idem)
-from modules.logs import tela_logs  # (idem)
+from modules.comercial import tela_comercial
+from modules.logs import tela_logs
 from modules.supabase_utils import get_client
+from modules.vagas import tela_vagas
+
 
 # -----------------------------------------------------------------------------
 # CONFIGURAÇÃO BÁSICA
@@ -13,10 +15,10 @@ from modules.supabase_utils import get_client
 st.set_page_config(
     page_title="Parma Consultoria",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
-st.sidebar.image("https://i.imgur.com/8LCCHtN.png", use_column_width=True)  # opcional, logo
+st.sidebar.image("https://i.imgur.com/8LCCHtN.png", use_column_width=True)
 st.sidebar.title("📋 Menu Principal")
 
 # -----------------------------------------------------------------------------
@@ -30,9 +32,9 @@ pagina = st.sidebar.radio(
         "Vagas",
         "Candidatos",
         "Comercial",
-        "Logs"
+        "Logs",
     ],
-    index=0
+    index=0,
 )
 
 # -----------------------------------------------------------------------------
@@ -43,9 +45,11 @@ def ping_supabase():
     try:
         supa = get_client()
         res = supa.table("clientes").select("id").limit(1).execute()
-        return True, len(res.data or [])
-    except Exception as e:
+        total = len(res.data or [])  # type: ignore[arg-type]
+        return True, total
+    except Exception as e:  # pragma: no cover - streamlit app
         return False, str(e)
+
 
 ok, info = ping_supabase()
 if ok:
@@ -61,15 +65,15 @@ if pagina == "Início":
     st.subheader("Painel Administrativo")
     st.markdown(
         """
-        Bem-vindo ao painel da **Parma Consultoria**.  
+        Bem-vindo ao painel da **Parma Consultoria**.
         Use o menu lateral para acessar os módulos:
-        - 👥 Clientes  
-        - 💼 Vagas  
-        - 👤 Candidatos  
-        - 📈 Comercial  
+        - 👥 Clientes
+        - 💼 Vagas
+        - 👤 Candidatos
+        - 📈 Comercial
         - 🧾 Logs
 
-        Todos os dados agora são sincronizados em tempo real com o **Supabase**.
+        Todos os dados são sincronizados em tempo real com o **Supabase**.
         """
     )
 
@@ -77,13 +81,13 @@ elif pagina == "Clientes":
     tela_clientes()
 
 elif pagina == "Vagas":
-    st.info("🧩 Tela de Vagas ainda não migrada para Supabase.")
+    tela_vagas()
 
 elif pagina == "Candidatos":
-    st.info("🧩 Tela de Candidatos ainda não migrada para Supabase.")
+    tela_candidatos()
 
 elif pagina == "Comercial":
-    st.info("🧩 Tela de Comercial ainda não migrada para Supabase.")
+    tela_comercial()
 
 elif pagina == "Logs":
-    st.info("🧩 Tela de Logs ainda não migrada para Supabase.")
+    tela_logs()
