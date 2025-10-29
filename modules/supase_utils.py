@@ -55,7 +55,10 @@ def _execute_table_operation(
 ) -> Iterable[Dict[str, Any]]:
     """Executa uma operação na tabela e padroniza o tratamento de erros."""
 
-    client = get_client()
+    try:
+        client = get_client()
+    except SupabaseCredentialsError as exc:
+        raise RuntimeError(str(exc)) from exc
 
     try:
         query = client.table(table)
