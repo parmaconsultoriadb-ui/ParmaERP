@@ -1,3 +1,15 @@
+import datetime as dt
+import pandas as pd
+import streamlit as st
+
+from .supabase_utils import (
+    sb_delete_by_id,
+    sb_insert,
+    sb_listar_registros,
+    sb_update_by_id,
+)
+
+
 def tela_clientes():
     st.title("👥 Clientes")
     st.caption("Cadastro e gerenciamento de clientes Parma Consultoria")
