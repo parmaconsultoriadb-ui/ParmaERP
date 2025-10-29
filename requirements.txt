@@ -1,0 +1,34 @@
+# Framework principal
+streamlit==1.39.0
+
+# Banco de dados e API
+supabase==2.4.0
+postgrest==0.10.6
+gotrue==2.4.2
+storage3==0.6.0
+realtime==1.0.3
+
+# Manipulação de dados
+pandas==2.2.3
+numpy==1.26.4
+
+# Geração de gráficos e organogramas
+graphviz==0.20.3
+matplotlib==3.9.2
+
+# PDF e relatórios
+pdfkit==1.0.0
+wkhtmltopdf==0.2
+
+# E-mail e envio de anexos (caso use funções de envio automático)
+yagmail==0.15.293
+
+# Datas, utilitários e tipos
+python-dateutil==2.9.0
+uuid==1.30
+
+# Segurança e autenticação (caso precise para futuros módulos)
+requests==2.32.3
+
+# Compatibilidade e extras
+pyarrow==17.0.0
