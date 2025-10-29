@@ -1,4 +1,5 @@
 import datetime as dt
+from typing import Any, Dict, List
 from typing import Dict, List
 
 import pandas as pd
@@ -140,22 +141,38 @@ def tela_comercial() -> None:
         st.info("Cadastre oportunidades para habilitar a edição e exclusão.")
         return
 
-    registros_dict: List[Dict[str, Any]] = df.to_dict("records")
+   registros_dict: List[Dict[str, Any]] = [row for row in df.to_dict("records") if row.get("id") is not None]
+    if not registros_dict:
+        st.info("Os registros retornados não possuem identificadores válidos para edição.")
+        return
+
+    registros_por_id = {row["id"]: row for row in registros_dict}
+    opcoes = [None] + list(registros_por_id.keys())
+
+    def _formatar_id(opcao: Any) -> str:
+        if opcao is None:
+            return "Escolha um registro"
+        registro = registros_por_id.get(opcao)
+        if registro:
+            return _format_registro(registro)
+        return f"ID {opcao}"
+
     reg_sel = st.selectbox(
         "Selecione o cliente",
-        options=[None] + registros_dict,
-        format_func=lambda opt: "Escolha um registro" if opt is None else _format_registro(opt),
+        options=opcoes,
+        format_func=_formatar_id,
         key="comercial_edicao_select",
     )
 
-    if not reg_sel:
+    if reg_sel is None:
         return
 
-    row = reg_sel
-    reg_id = row.get("id")
-    if reg_id is None:
-        st.error("Registro selecionado não possui ID válido no Supabase.")
+    row = registros_por_id.get(reg_sel)
+    if not row:
+        st.error("Não foi possível carregar os dados do registro selecionado.")
         return
+
+    reg_id = reg_sel
 
     col1, col2, col3 = st.columns(3)
     with col1:
