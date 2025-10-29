@@ -1,68 +1,108 @@
-import streamlit as st
-from modules.supabase_utils import (
-    sb_listar_registros,
-    sb_insert,
-    sb_update_by_id,
-    sb_delete_by_id
-)
-import pandas as pd
 import datetime as dt
+from typing import Any, Dict, List
+
+import pandas as pd
+import streamlit as st
+
+from modules.supabase_utils import (
+    sb_delete_by_id,
+    sb_insert,
+    sb_listar_registros,
+    sb_update_by_id,
+)
 
 
-def tela_vagas():
+STATUS_OPCOES = ["Aberta", "Ag. Inicio", "Cancelada", "Fechada", "Reaberta", "Pausada"]
+
+
+def _safe_date(value: Any, default: dt.date) -> dt.date:
+    if not value:
+        return default
+
+    try:
+        parsed = pd.to_datetime(value, errors="coerce")
+        if pd.isna(parsed):
+            return default
+        return parsed.date()  # type: ignore[return-value]
+    except Exception:
+        return default
+
+
+def _format_vaga(option: Dict[str, Any]) -> str:
+    cargo = option.get("cargo")
+    cliente = option.get("cliente")
+    if cargo and cliente:
+        return f"{cargo} — {cliente}"
+    if cargo:
+        return str(cargo)
+    return f"ID {option.get('id', '?')}"
+
+
+def tela_vagas() -> None:
     st.title("💼 Vagas")
     st.caption("Gestão das vagas cadastradas no Supabase")
 
-    # --- Carregar registros
-    vagas = list(sb_listar_registros("vagas"))
-    df = pd.DataFrame(vagas)
+    try:
+        vagas = list(sb_listar_registros("vagas"))
+    except RuntimeError as exc:
+        st.error(str(exc))
+        vagas = []
+
+    df = pd.DataFrame(vagas).fillna("")
 
     if st.button("🔄 Atualizar lista"):
         st.rerun()
 
-    if not df.empty:
-        st.dataframe(
-            df[
-                [
-                    "id",
-                    "data_de_abertura",
-                    "cliente",
-                    "cargo",
-                    "recrutador",
-                    "status",
-                    "salario_1",
-                    "salario_2",
-                    "salario_final",
-                    "reposicao",
-                ]
-            ],
-            use_container_width=True,
-        )
-    else:
+    if df.empty:
         st.info("Nenhuma vaga cadastrada ainda.")
+    else:
+        display_cols = [
+            "id",
+            "data_de_abertura",
+            "cliente",
+            "cargo",
+            "recrutador",
+            "status",
+            "salario_1",
+            "salario_2",
+            "salario_final",
+            "reposicao",
+        ]
+        available_cols = [col for col in display_cols if col in df.columns]
+        if available_cols:
+            st.dataframe(df[available_cols], use_container_width=True, hide_index=True)
 
     st.divider()
     st.subheader("➕ Nova vaga")
 
-    # --- Formulário de nova vaga
     with st.form("nova_vaga"):
         col1, col2, col3 = st.columns(3)
         with col1:
-            data_de_abertura = st.date_input("Data de abertura", dt.date.today())
-            cliente = st.text_input("Cliente *")
-            cargo = st.text_input("Cargo *")
+            data_de_abertura = st.date_input(
+                "Data de abertura",
+                dt.date.today(),
+                key="nova_vaga_data_abertura",
+            )
+            cliente = st.text_input("Cliente *", key="nova_vaga_cliente")
+            cargo = st.text_input("Cargo *", key="nova_vaga_cargo")
         with col2:
-            recrutador = st.text_input("Recrutador")
+            recrutador = st.text_input("Recrutador", key="nova_vaga_recrutador")
             status = st.selectbox(
                 "Status",
-                ["Aberta", "Ag. Inicio", "Cancelada", "Fechada", "Reaberta", "Pausada"],
+                STATUS_OPCOES,
                 index=0,
+                key="nova_vaga_status",
             )
         with col3:
-            salario_1 = st.text_input("Salário base")
-            salario_2 = st.text_input("Salário variável")
-            salario_final = st.text_input("Salário final")
-            reposicao = st.selectbox("Reposição", ["", "Sim"], index=0)
+            salario_1 = st.text_input("Salário base", key="nova_vaga_salario_1")
+            salario_2 = st.text_input("Salário variável", key="nova_vaga_salario_2")
+            salario_final = st.text_input("Salário final", key="nova_vaga_salario_final")
+            reposicao = st.selectbox(
+                "Reposição",
+                ["", "Sim"],
+                index=0,
+                key="nova_vaga_reposicao",
+            )
 
         enviar = st.form_submit_button("Salvar vaga")
 
@@ -82,69 +122,119 @@ def tela_vagas():
                     "reposicao": reposicao,
                     "atualizacao": str(dt.datetime.now()),
                 }
-                res = sb_insert("vagas", nova)
-                st.success(f"✅ Vaga '{cargo}' adicionada com sucesso (ID: {res.get('id')}).")
-                st.rerun()
+                try:
+                    res = sb_insert("vagas", nova)
+                except RuntimeError as exc:
+                    st.error(str(exc))
+                else:
+                    st.success(
+                        f"✅ Vaga '{cargo.strip()}' adicionada com sucesso (ID: {res.get('id', 'N/D')})."
+                    )
+                    st.rerun()
 
     st.divider()
     st.subheader("✏️ Editar / Excluir vaga")
 
-    if not df.empty:
-        vaga_sel = st.selectbox(
-            "Selecione a vaga",
-            df["cargo"].tolist(),
-            index=None,
-            placeholder="Escolha uma vaga para editar"
+    if df.empty or "id" not in df.columns:
+        st.info("Cadastre vagas para habilitar a edição e exclusão.")
+        return
+
+    registros: List[Dict[str, Any]] = df.to_dict("records")
+    vaga_sel = st.selectbox(
+        "Selecione a vaga",
+        options=[None] + registros,
+        format_func=lambda opt: "Escolha uma vaga" if opt is None else _format_vaga(opt),
+        key="vaga_edicao_select",
+    )
+
+    if not vaga_sel:
+        return
+
+    vaga_row = vaga_sel
+    vaga_id = vaga_row.get("id")
+    if vaga_id is None:
+        st.error("Registro selecionado não possui ID válido no Supabase.")
+        return
+
+    col1, col2 = st.columns(2)
+    with col1:
+        novo_cliente = st.text_input("Cliente", vaga_row.get("cliente", ""), key=f"editar_vaga_cliente_{vaga_id}")
+        novo_cargo = st.text_input("Cargo", vaga_row.get("cargo", ""), key=f"editar_vaga_cargo_{vaga_id}")
+        novo_recrutador = st.text_input(
+            "Recrutador",
+            vaga_row.get("recrutador", ""),
+            key=f"editar_vaga_recrutador_{vaga_id}",
         )
-        if vaga_sel:
-            vaga_row = df[df["cargo"] == vaga_sel].iloc[0]
-            col1, col2 = st.columns(2)
-            with col1:
-                novo_cliente = st.text_input("Cliente", vaga_row["cliente"])
-                novo_cargo = st.text_input("Cargo", vaga_row["cargo"])
-                novo_recrutador = st.text_input("Recrutador", vaga_row["recrutador"])
-                novo_status = st.selectbox(
-                    "Status",
-                    ["Aberta", "Ag. Inicio", "Cancelada", "Fechada", "Reaberta", "Pausada"],
-                    index=["Aberta", "Ag. Inicio", "Cancelada", "Fechada", "Reaberta", "Pausada"].index(vaga_row["status"]) if vaga_row["status"] in ["Aberta", "Ag. Inicio", "Cancelada", "Fechada", "Reaberta", "Pausada"] else 0
-                )
-            with col2:
-                novo_salario_1 = st.text_input("Salário base", vaga_row["salario_1"])
-                novo_salario_2 = st.text_input("Salário variável", vaga_row["salario_2"])
-                novo_salario_final = st.text_input("Salário final", vaga_row["salario_final"])
-                nova_reposicao = st.selectbox(
-                    "Reposição", ["", "Sim"], index=1 if vaga_row["reposicao"] == "Sim" else 0
-                )
-                nova_data = st.date_input(
-                    "Data de abertura",
-                    value=pd.to_datetime(vaga_row["data_de_abertura"]).date() if vaga_row["data_de_abertura"] else dt.date.today()
-                )
+        status_index = 0
+        if vaga_row.get("status") in STATUS_OPCOES:
+            status_index = STATUS_OPCOES.index(vaga_row.get("status"))
+        novo_status = st.selectbox(
+            "Status",
+            STATUS_OPCOES,
+            index=status_index,
+            key=f"editar_vaga_status_{vaga_id}",
+        )
+    with col2:
+        novo_salario_1 = st.text_input(
+            "Salário base",
+            vaga_row.get("salario_1", ""),
+            key=f"editar_vaga_salario1_{vaga_id}",
+        )
+        novo_salario_2 = st.text_input(
+            "Salário variável",
+            vaga_row.get("salario_2", ""),
+            key=f"editar_vaga_salario2_{vaga_id}",
+        )
+        novo_salario_final = st.text_input(
+            "Salário final",
+            vaga_row.get("salario_final", ""),
+            key=f"editar_vaga_salariofinal_{vaga_id}",
+        )
+        reposicao_index = 1 if vaga_row.get("reposicao") == "Sim" else 0
+        nova_reposicao = st.selectbox(
+            "Reposição",
+            ["", "Sim"],
+            index=reposicao_index,
+            key=f"editar_vaga_reposicao_{vaga_id}",
+        )
+        nova_data = st.date_input(
+            "Data de abertura",
+            value=_safe_date(vaga_row.get("data_de_abertura"), dt.date.today()),
+            key=f"editar_vaga_data_abertura_{vaga_id}",
+        )
 
-            col_a, col_b = st.columns(2)
-            with col_a:
-                if st.button("💾 Atualizar vaga", use_container_width=True):
-                    sb_update_by_id(
-                        "vagas",
-                        vaga_row["id"],
-                        {
-                            "data_de_abertura": str(nova_data),
-                            "cliente": novo_cliente,
-                            "cargo": novo_cargo,
-                            "recrutador": novo_recrutador,
-                            "status": novo_status,
-                            "salario_1": novo_salario_1,
-                            "salario_2": novo_salario_2,
-                            "salario_final": novo_salario_final,
-                            "reposicao": nova_reposicao,
-                            "atualizacao": str(dt.datetime.now()),
-                        },
-                    )
-                    st.success("✅ Vaga atualizada com sucesso!")
-                    st.rerun()
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("💾 Atualizar vaga", use_container_width=True, key=f"botao_atualizar_vaga_{vaga_id}"):
+            try:
+                sb_update_by_id(
+                    "vagas",
+                    vaga_id,
+                    {
+                        "data_de_abertura": str(nova_data),
+                        "cliente": novo_cliente.strip(),
+                        "cargo": novo_cargo.strip(),
+                        "recrutador": novo_recrutador.strip(),
+                        "status": novo_status,
+                        "salario_1": novo_salario_1.strip(),
+                        "salario_2": novo_salario_2.strip(),
+                        "salario_final": novo_salario_final.strip(),
+                        "reposicao": nova_reposicao,
+                        "atualizacao": str(dt.datetime.now()),
+                    },
+                )
+            except RuntimeError as exc:
+                st.error(str(exc))
+            else:
+                st.success("✅ Vaga atualizada com sucesso!")
+                st.rerun()
 
-            with col_b:
-                if st.button("🗑️ Excluir vaga", use_container_width=True):
-                    sb_delete_by_id("vagas", vaga_row["id"])
-                    st.warning("🗑️ Vaga removida com sucesso.")
-                    st.rerun()
-
+    with col_b:
+        if st.button("🗑️ Excluir vaga", use_container_width=True, key=f"botao_excluir_vaga_{vaga_id}"):
+            try:
+                sb_delete_by_id("vagas", vaga_id)
+            except RuntimeError as exc:
+                st.error(str(exc))
+            else:
+                st.warning("🗑️ Vaga removida com sucesso.")
+                st.rerun()
