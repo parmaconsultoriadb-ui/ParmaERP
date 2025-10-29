@@ -200,3 +200,38 @@ def tela_candidatos() -> None:
             key=f"editar_candidato_data_inicio_{cand_id}",
             disabled=not informar_data_inicio,
         )
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("💾 Atualizar candidato", use_container_width=True, key=f"botao_atualizar_candidato_{cand_id}"):
+            try:
+                sb_update_by_id(
+                    "candidatos",
+                    cand_id,
+                    {
+                        "cliente": novo_cliente.strip(),
+                        "cargo": novo_cargo.strip(),
+                        "nome": novo_nome.strip(),
+                        "telefone": novo_telefone.strip(),
+                        "recrutador": novo_recrutador.strip(),
+                        "status": novo_status,
+                        "data_cadastro": str(nova_data_cad),
+                        "data_inicio": str(nova_data_ini) if informar_data_inicio else None,
+                        "atualizacao": str(dt.datetime.now()),
+                    },
+                )
+            except RuntimeError as exc:
+                st.error(str(exc))
+            else:
+                st.success("✅ Candidato atualizado com sucesso!")
+                st.rerun()
+
+    with col_b:
+        if st.button("🗑️ Excluir candidato", use_container_width=True, key=f"botao_excluir_candidato_{cand_id}"):
+            try:
+                sb_delete_by_id("candidatos", cand_id)
+            except RuntimeError as exc:
+                st.error(str(exc))
+            else:
+                st.warning("🗑️ Candidato removido com sucesso.")
+                st.rerun()
