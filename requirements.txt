@@ -3,7 +3,8 @@ streamlit==1.39.0
 
 # Banco de dados e API
 supabase==2.4.0
-postgrest==0.10.6
+# supabase 2.4.0 requires postgrest>=0.10.8,<0.17.0
+postgrest==0.10.8
 gotrue==2.4.2
 storage3==0.6.0
 realtime==1.0.3
