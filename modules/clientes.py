@@ -1,4 +1,6 @@
 import datetime as dt
+from typing import Any, Dict, List
+
 import pandas as pd
 import streamlit as st
 
@@ -10,39 +12,73 @@ from .supabase_utils import (
 )
 
 
-def tela_clientes():
+def _safe_date(value: Any, default: dt.date) -> dt.date:
+    """Converte strings em data, retornando um valor padrão em caso de falha."""
+
+    if not value:
+        return default
+
+    try:
+        return pd.to_datetime(value, errors="coerce").date()  # type: ignore[return-value]
+    except Exception:
+        return default
+
+
+def _format_option(option: Dict[str, Any]) -> str:
+    nome = option.get("cliente") or option.get("nome")
+    if nome:
+        return str(nome)
+    return f"ID {option.get('id', '?')}"
+
+
+def tela_clientes() -> None:
     st.title("👥 Clientes")
     st.caption("Cadastro e gerenciamento de clientes Parma Consultoria")
 
-    # --- carregar registros
-    clientes = list(sb_listar_registros("clientes"))
-    df = pd.DataFrame(clientes)
+    try:
+        clientes = list(sb_listar_registros("clientes"))
+    except RuntimeError as exc:
+        st.error(str(exc))
+        clientes = []
 
-    # --- botão para atualizar
+    df = pd.DataFrame(clientes).fillna("")
+
     if st.button("🔄 Atualizar lista"):
         st.rerun()
 
-    if not df.empty:
-        st.dataframe(df[["id", "data", "cliente", "nome", "cidade", "uf", "telefone", "email"]],
-                     use_container_width=True)
-    else:
+    if df.empty:
         st.info("Nenhum cliente cadastrado ainda.")
+    else:
+        display_cols = [
+            "id",
+            "data",
+            "cliente",
+            "nome",
+            "cidade",
+            "uf",
+            "telefone",
+            "email",
+        ]
+        available_cols = [col for col in display_cols if col in df.columns]
+        if available_cols:
+            st.dataframe(df[available_cols], use_container_width=True, hide_index=True)
+        else:
+            st.info("A tabela de clientes não possui colunas para exibição.")
 
     st.divider()
     st.subheader("➕ Novo cliente")
 
-    # --- formulário
     with st.form("novo_cliente"):
         col1, col2 = st.columns(2)
         with col1:
-            data = st.date_input("Data", dt.date.today())
-            cliente = st.text_input("Cliente *")
-            nome = st.text_input("Nome")
-            cidade = st.text_input("Cidade")
+            data = st.date_input("Data", dt.date.today(), key="novo_cliente_data")
+            cliente = st.text_input("Cliente *", key="novo_cliente_nome_cliente")
+            nome = st.text_input("Nome", key="novo_cliente_nome_contato")
+            cidade = st.text_input("Cidade", key="novo_cliente_cidade")
         with col2:
-            uf = st.text_input("UF", max_chars=2)
-            telefone = st.text_input("Telefone")
-            email = st.text_input("E-mail")
+            uf = st.text_input("UF", max_chars=2, key="novo_cliente_uf")
+            telefone = st.text_input("Telefone", key="novo_cliente_telefone")
+            email = st.text_input("E-mail", key="novo_cliente_email")
 
         enviar = st.form_submit_button("Salvar cliente")
 
@@ -59,54 +95,81 @@ def tela_clientes():
                     "telefone": telefone.strip(),
                     "email": email.strip(),
                 }
-                res = sb_insert("clientes", novo)
-                st.success(f"✅ Cliente '{cliente}' adicionado com sucesso (ID: {res.get('id')}).")
-                st.rerun()
+                try:
+                    res = sb_insert("clientes", novo)
+                except RuntimeError as exc:
+                    st.error(str(exc))
+                else:
+                    st.success(
+                        f"✅ Cliente '{cliente.strip()}' adicionado com sucesso (ID: {res.get('id', 'N/D')})."
+                    )
+                    st.rerun()
 
     st.divider()
     st.subheader("✏️ Editar / Excluir Cliente")
 
-    if not df.empty:
-        cliente_sel = st.selectbox(
-            "Selecione o cliente",
-            df["cliente"].tolist(),
-            index=None,
-            placeholder="Escolha um cliente para editar"
-        )
-        if cliente_sel:
-            cliente_row = df[df["cliente"] == cliente_sel].iloc[0]
-            col1, col2 = st.columns(2)
-            with col1:
-                novo_nome = st.text_input("Nome", cliente_row["nome"])
-                nova_cidade = st.text_input("Cidade", cliente_row["cidade"])
-                novo_uf = st.text_input("UF", cliente_row["uf"], max_chars=2)
-                novo_telefone = st.text_input("Telefone", cliente_row["telefone"])
-            with col2:
-                novo_email = st.text_input("E-mail", cliente_row["email"])
-                nova_data = st.date_input(
-                    "Data",
-                    value=pd.to_datetime(cliente_row["data"]).date() if cliente_row["data"] else dt.date.today()
-                )
+    if df.empty or "id" not in df.columns:
+        st.info("Cadastre clientes para habilitar a edição e exclusão.")
+        return
 
-            col_a, col_b = st.columns(2)
-            with col_a:
-                if st.button("💾 Atualizar cliente", use_container_width=True):
-                    sb_update_by_id(
-                        "clientes",
-                        cliente_row["id"],
-                        {
-                            "data": str(nova_data),
-                            "nome": novo_nome,
-                            "cidade": nova_cidade,
-                            "uf": novo_uf.upper(),
-                            "telefone": novo_telefone,
-                            "email": novo_email,
-                        },
-                    )
-                    st.success("✅ Cliente atualizado com sucesso!")
-                    st.rerun()
-            with col_b:
-                if st.button("🗑️ Excluir cliente", use_container_width=True):
-                    sb_delete_by_id("clientes", cliente_row["id"])
-                    st.warning("🗑️ Cliente removido.")
-                    st.rerun()
+    registros: List[Dict[str, Any]] = df.to_dict("records")
+    cliente_sel = st.selectbox(
+        "Selecione o cliente",
+        options=[None] + registros,
+        format_func=lambda opt: "Escolha um cliente" if opt is None else _format_option(opt),
+        key="cliente_edicao_select",
+    )
+
+    if not cliente_sel:
+        return
+
+    cliente_row = cliente_sel
+    cliente_id = cliente_row.get("id")
+    if cliente_id is None:
+        st.error("Registro selecionado não possui ID válido no Supabase.")
+        return
+
+    col1, col2 = st.columns(2)
+    with col1:
+        novo_nome = st.text_input("Nome", cliente_row.get("nome", ""), key="editar_cliente_nome")
+        nova_cidade = st.text_input("Cidade", cliente_row.get("cidade", ""), key="editar_cliente_cidade")
+        novo_uf = st.text_input("UF", cliente_row.get("uf", ""), max_chars=2, key="editar_cliente_uf")
+        novo_telefone = st.text_input("Telefone", cliente_row.get("telefone", ""), key="editar_cliente_telefone")
+    with col2:
+        novo_email = st.text_input("E-mail", cliente_row.get("email", ""), key="editar_cliente_email")
+        nova_data = st.date_input(
+            "Data",
+            value=_safe_date(cliente_row.get("data"), dt.date.today()),
+            key="editar_cliente_data",
+        )
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("💾 Atualizar cliente", use_container_width=True, key="botao_atualizar_cliente"):
+            try:
+                sb_update_by_id(
+                    "clientes",
+                    cliente_id,
+                    {
+                        "data": str(nova_data),
+                        "nome": novo_nome.strip(),
+                        "cidade": nova_cidade.strip(),
+                        "uf": novo_uf.strip().upper(),
+                        "telefone": novo_telefone.strip(),
+                        "email": novo_email.strip(),
+                    },
+                )
+            except RuntimeError as exc:
+                st.error(str(exc))
+            else:
+                st.success("✅ Cliente atualizado com sucesso!")
+                st.rerun()
+    with col_b:
+        if st.button("🗑️ Excluir cliente", use_container_width=True, key="botao_excluir_cliente"):
+            try:
+                sb_delete_by_id("clientes", cliente_id)
+            except RuntimeError as exc:
+                st.error(str(exc))
+            else:
+                st.warning("🗑️ Cliente removido.")
+                st.rerun()
