@@ -1,24 +1,25 @@
-import uuid
 from typing import List, Dict, Any, Optional
-from adapters.supabase_repo import ClientesRepo
+from adapters.supabase_repo import list_rows, insert_row, get_row, update_row, delete_row
 from schemas.clientes import Cliente
-from common.errors import NotFoundError
+
+TABLE = "clientes"
 
 class ClientesService:
-    def __init__(self):
-        self.repo = ClientesRepo()
+    def listar(self, page: int = 1, busca: Optional[str] = None) -> List[Dict[str, Any]]:
+        if busca:
+            return list_rows(TABLE, page=page, ilike=("nome", busca), order_by="id", desc=True)
+        return list_rows(TABLE, page=page, order_by="id", desc=True)
 
-    def listar_clientes(self, page: int = 1, busca: Optional[str] = None) -> List[Dict[str, Any]]:
-        return self.repo.list(page=page, search_col="nome", search=busca)
+    def criar(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        obj = Cliente(**data).model_dump(exclude_none=True)
+        return insert_row(TABLE, obj)
 
-    def criar_cliente(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        # Gera ID se não vier
-        payload = {"id": data.get("id") or f"c_{uuid.uuid4().hex[:8]}", **data}
-        cliente = Cliente(**payload)  # validação
-        return self.repo.insert(cliente.model_dump())
+    def obter(self, row_id: int) -> Optional[Dict[str, Any]]:
+        return get_row(TABLE, row_id, id_col="id")
 
-    def obter_cliente(self, cliente_id: str) -> Dict[str, Any]:
-        obj = self.repo.get_by_id(cliente_id)
-        if not obj:
-            raise NotFoundError("Cliente não encontrado")
-        return obj
+    def atualizar(self, row_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+        obj = Cliente(**{**data, "id": row_id}).model_dump(exclude={"id"}, exclude_none=True)
+        return update_row(TABLE, row_id, obj, id_col="id")
+
+    def excluir(self, row_id: int) -> None:
+        delete_row(TABLE, row_id, id_col="id")
