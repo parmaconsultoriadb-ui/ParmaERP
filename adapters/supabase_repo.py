@@ -38,14 +38,17 @@ def get_row(table: str, row_id: Any, id_col: str = "id") -> Optional[Dict[str, A
 
 def insert_row(table: str, data: dict) -> dict:
     sb = get_supabase()
-    res = sb.table(table).insert(data).select("*").execute()
-    # retorno compatível com a estrutura moderna
-    return res.data[0] if res.data else {}
+    res = sb.table(table).insert(data).execute()
+    # Retorna o primeiro registro inserido (se houver)
+    return res.data[0] if res.data and len(res.data) > 0 else {}
 
 def update_row(table: str, row_id: any, data: dict, id_col: str = "id") -> dict:
     sb = get_supabase()
-    res = sb.table(table).update(data).eq(id_col, row_id).select("*").execute()
-    return res.data[0] if res.data else {}
+    # executa o update primeiro
+    sb.table(table).update(data).eq(id_col, row_id).execute()
+    # busca o registro atualizado (garante compatibilidade com API v2)
+    res = sb.table(table).select("*").eq(id_col, row_id).execute()
+    return res.data[0] if res.data and len(res.data) > 0 else {}
 
 def delete_row(table: str, row_id: Any, id_col: str = "id") -> None:
     sb = get_supabase()
