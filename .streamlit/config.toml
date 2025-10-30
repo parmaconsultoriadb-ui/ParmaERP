@@ -6,3 +6,10 @@ enableXsrfProtection = false
 
 [app]
 main_script = "app/app.py"
+
+[theme]
+primaryColor="#004488"
+backgroundColor="#F8FAFC"
+secondaryBackgroundColor="#E0F2F7"
+textColor="#333333"
+font="sans serif"
