@@ -11,7 +11,7 @@ RECRUTADORES_PADRAO = ["A definir", "Lorrayne", "Kaline", "Nikole", "Leila", "Ju
 
 def page():
     st.header("📄 Vagas")
-    search, page_num = search_and_pagination()
+    search, page_num = search_and_pagination(prefix="vagas")
     data = service.vagas_listar(page=page_num, busca_cliente=search)
     render_table(data)
 
