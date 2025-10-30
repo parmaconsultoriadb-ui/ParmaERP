@@ -56,14 +56,6 @@ def main():
     usuario = st.session_state.get("usuario", "Usuário")
     empresa = "Parma Consultoria"
 
-    nav_container = st.container()
-    with nav_container:
-        st.image(LOGO_URL, width=180)
-        perfil_lines = [f"👤 **{usuario}**"]
-        if empresa:
-            perfil_lines.append(f"🏢 {empresa}")
-        st.markdown("<br/>".join(perfil_lines), unsafe_allow_html=True)
-
     st.markdown("---")
 
     # =====================================================
