@@ -1,4 +1,16 @@
 import os
+from datetime import datetime
+
+# =============================================
+# CONFIGURAÇÃO DE FORMATAÇÃO DE DATA/HORA
+# =============================================
+
+DATE_FORMAT = "%d/%m/%Y"
+DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
+
+def agora_formatado() -> str:
+    """Retorna a data/hora atual formatada no padrão DD/MM/YYYY HH:MM:SS"""
+    return datetime.now().strftime(DATETIME_FORMAT)
 
 class Settings:
     APP_NAME: str = os.getenv("APP_NAME", "ParmaERP")
