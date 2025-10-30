@@ -1,14 +1,13 @@
 from typing import Optional, Dict, Any, List
 from adapters.supabase_repo import list_rows, insert_row, update_row, delete_row
 from schemas.recrutamento import Vaga, Candidato
-from common.config import agora_formatado, DATE_FORMAT, DATETIME_FORMAT, agora_datetime
+from common.config import agora_formatado, agora_datetime, settings
 
 TABLE_VAGAS = "vagas"
 TABLE_CANDIDATOS = "candidatos"
 
 def _hoje_ddmmyyyy() -> str:
-    # reaproveita o GMT-3 do common.config
-    return agora_datetime().strftime(DATE_FORMAT)
+    return agora_datetime().strftime(settings.DATE_FORMAT)
 
 class RecrutamentoService:
     # -------------------------
