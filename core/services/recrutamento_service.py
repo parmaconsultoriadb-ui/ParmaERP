@@ -1,40 +1,39 @@
-import uuid
 from typing import List, Dict, Any, Optional
-from adapters.supabase_repo import CandidatosRepo, VagasRepo
+from adapters.supabase_repo import list_rows, insert_row, get_row, update_row, delete_row
 from schemas.recrutamento import Candidato, Vaga
-from common.errors import NotFoundError
+
+T_VAGAS = "vagas"
+T_CANDIDATOS = "candidatos"
 
 class RecrutamentoService:
-    def __init__(self):
-        self.candidatos_repo = CandidatosRepo()
-        self.vagas_repo = VagasRepo()
+    # Vagas
+    def vagas_listar(self, page: int = 1, busca_cliente: Optional[str] = None) -> List[Dict[str, Any]]:
+        if busca_cliente:
+            return list_rows(T_VAGAS, page=page, ilike=("cliente", busca_cliente), order_by="id", desc=True)
+        return list_rows(T_VAGAS, page=page, order_by="id", desc=True)
+
+    def vaga_criar(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        obj = Vaga(**data).model_dump(exclude_none=True)
+        return insert_row(T_VAGAS, obj)
+
+    def vaga_atualizar(self, row_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+        return update_row(T_VAGAS, row_id, data, id_col="id")
+
+    def vaga_excluir(self, row_id: int) -> None:
+        delete_row(T_VAGAS, row_id, id_col="id")
 
     # Candidatos
-    def listar_candidatos(self, page: int = 1, busca: Optional[str] = None) -> List[Dict[str, Any]]:
-        return self.candidatos_repo.list(page=page, search_col="nome", search=busca)
+    def candidatos_listar(self, page: int = 1, busca_nome: Optional[str] = None) -> List[Dict[str, Any]]:
+        if busca_nome:
+            return list_rows(T_CANDIDATOS, page=page, ilike=("nome", busca_nome), order_by="id", desc=True)
+        return list_rows(T_CANDIDATOS, page=page, order_by="id", desc=True)
 
-    def criar_candidato(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        payload = {"id": data.get("id") or f"k_{uuid.uuid4().hex[:8]}", **data}
-        cand = Candidato(**payload)
-        return self.candidatos_repo.insert(cand.model_dump())
+    def candidato_criar(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        obj = Candidato(**data).model_dump(exclude_none=True)
+        return insert_row(T_CANDIDATOS, obj)
 
-    def obter_candidato(self, candidato_id: str) -> Dict[str, Any]:
-        obj = self.candidatos_repo.get_by_id(candidato_id)
-        if not obj:
-            raise NotFoundError("Candidato não encontrado")
-        return obj
+    def candidato_atualizar(self, row_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+        return update_row(T_CANDIDATOS, row_id, data, id_col="id")
 
-    # Vagas
-    def listar_vagas(self, page: int = 1, busca: Optional[str] = None) -> List[Dict[str, Any]]:
-        return self.vagas_repo.list(page=page, search_col="titulo", search=busca)
-
-    def criar_vaga(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        payload = {"id": data.get("id") or f"v_{uuid.uuid4().hex[:8]}", **data}
-        vaga = Vaga(**payload)
-        return self.vagas_repo.insert(vaga.model_dump())
-
-    def obter_vaga(self, vaga_id: str) -> Dict[str, Any]:
-        obj = self.vagas_repo.get_by_id(vaga_id)
-        if not obj:
-            raise NotFoundError("Vaga não encontrada")
-        return obj
+    def candidato_excluir(self, row_id: int) -> None:
+        delete_row(T_CANDIDATOS, row_id, id_col="id")
