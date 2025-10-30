@@ -1,27 +1,26 @@
 import streamlit as st
 from core.services.clientes_service import ClientesService
-from app.components.tables import render_table
 from app.components.filters import search_and_pagination
-
-st.set_page_config(page_title="Clientes", page_icon="👥", layout="wide")
-st.title("Clientes")
+from app.components.tables import render_table
+from core.services.log_service import registrar_log
 
 service = ClientesService()
 
-search, page = search_and_pagination()
-with st.spinner("Carregando clientes..."):
-    data = service.listar_clientes(page=page, busca=search)
-render_table(data)
+def page():
+    st.header("👥 Clientes")
+    search, page = search_and_pagination()
+    data = service.listar(page=page, busca=search)
+    render_table(data)
 
-st.subheader("Novo cliente")
-with st.form("novo_cliente"):
-    nome = st.text_input("Nome", placeholder="Ex.: Empresa XYZ")
-    email = st.text_input("Email (opcional)")
-    cnpj = st.text_input("CNPJ (opcional, somente números)")
-    submitted = st.form_submit_button("Salvar")
-    if submitted:
-        try:
-            obj = service.criar_cliente({"nome": nome, "email": email or None, "cnpj": cnpj or None})
-            st.success(f"Cliente criado: {obj['id']}")
-        except Exception as e:
-            st.error(f"Erro: {e}")
+    st.subheader("Novo cliente")
+    with st.form("novo_cliente"):
+        nome = st.text_input("Nome")
+        email = st.text_input("Email (opcional)")
+        cidade = st.text_input("Cidade (opcional)")
+        uf = st.text_input("UF (opcional)", max_chars=2)
+        telefone = st.text_input("Telefone (opcional)")
+        if st.form_submit_button("Salvar"):
+            obj = service.criar({"nome": nome, "email": email or None, "cidade": cidade or None, "uf": uf or None, "telefone": telefone or None})
+            registrar_log("Clientes", "Adicionar", item_id=str(obj.get("id")), detalhe=f"Cliente {nome} criado.")
+            st.success(f"Cliente criado: {obj.get('id')}")
+            st.rerun()
