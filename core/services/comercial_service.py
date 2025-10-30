@@ -1,24 +1,24 @@
-import uuid
 from typing import List, Dict, Any, Optional
-from adapters.supabase_repo import ComercialRepo
+from adapters.supabase_repo import list_rows, insert_row, get_row, update_row, delete_row
 from schemas.comercial import Oportunidade
-from common.errors import NotFoundError
+
+TABLE = "comercial"
 
 class ComercialService:
-    def __init__(self):
-        self.repo = ComercialRepo()
+    def listar(self, page: int = 1, busca_status: Optional[str] = None) -> List[Dict[str, Any]]:
+        if busca_status:
+            return list_rows(TABLE, page=page, where={"status": busca_status}, order_by="id", desc=True)
+        return list_rows(TABLE, page=page, order_by="id", desc=True)
 
-    def listar_oportunidades(self, page: int = 1, busca: Optional[str] = None) -> List[Dict[str, Any]]:
-        # busca por fase
-        return self.repo.list(page=page, search_col="fase", search=busca or None)
+    def criar(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        obj = Oportunidade(**data).model_dump(exclude_none=True)
+        return insert_row(TABLE, obj)
 
-    def criar_oportunidade(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        payload = {"id": data.get("id") or f"o_{uuid.uuid4().hex[:8]}", **data}
-        opp = Oportunidade(**payload)
-        return self.repo.insert(opp.model_dump())
+    def mover_status(self, row_id: int, novo_status: str) -> Dict[str, Any]:
+        return update_row(TABLE, row_id, {"status": novo_status}, id_col="id")
 
-    def obter_oportunidade(self, opp_id: str) -> Dict[str, Any]:
-        obj = self.repo.get_by_id(opp_id)
-        if not obj:
-            raise NotFoundError("Oportunidade não encontrada")
-        return obj
+    def atualizar(self, row_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+        return update_row(TABLE, row_id, data, id_col="id")
+
+    def excluir(self, row_id: int) -> None:
+        delete_row(TABLE, row_id, id_col="id")
