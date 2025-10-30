@@ -1,113 +1,121 @@
 import streamlit as st
-from core.services.clientes_service import ClientesService
-from core.services.comercial_service import ComercialService
-from core.services.recrutamento_service import RecrutamentoService
-from app.components.tables import render_table
-from app.components.filters import search_and_pagination
+from common.config import settings
+from app.components.theme import apply_parma_theme
+from core.services.auth_service import login, get_permissoes
 
-# ---------------- CONFIGURAÇÃO ----------------
-st.set_page_config(page_title="ParmaERP", page_icon="📦", layout="wide")
-st.markdown(
-    """
-    <style>
-    .topnav {
-        background-color: #1E88E5;
-        overflow: hidden;
-        border-radius: 6px;
-    }
-    .topnav a {
-        float: left;
-        color: #f2f2f2;
-        text-align: center;
-        padding: 10px 16px;
-        text-decoration: none;
-        font-size: 16px;
-        font-weight: 600;
-    }
-    .topnav a:hover {
-        background-color: #1565C0;
-        color: white;
-    }
-    .topnav a.active {
-        background-color: #0D47A1;
-        color: white;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# páginas
+from app.pages import clientes as pg_clientes
+from app.pages import vagas as pg_vagas
+from app.pages import candidatos as pg_candidatos
+from app.pages import comercial as pg_comercial
+from app.pages import contratos as pg_contratos
+from app.pages import logs as pg_logs
 
-# ---------------- MENU ----------------
-menu_items = {
-    "Clientes": "👥",
-    "Comercial": "💼",
-    "Vagas": "📄",
-    "Candidatos": "🧑‍💻",
-}
-if "pagina" not in st.session_state:
-    st.session_state["pagina"] = "Clientes"
+MENU = [
+    ("menu", "🏠 Menu Principal"),
+    ("comercial", "💼 Comercial"),
+    ("clientes", "👥 Clientes"),
+    ("vagas", "📄 Vagas"),
+    ("candidatos", "🧑‍💻 Candidatos"),
+    ("contratos", "💰 Contratos"),
+    ("logs", "📜 Logs")
+]
 
-cols = st.columns(len(menu_items))
-for idx, (nome, icon) in enumerate(menu_items.items()):
-    if cols[idx].button(f"{icon} {nome}", use_container_width=True):
-        st.session_state["pagina"] = nome
+def _top_nav(allowed_keys):
+    cols = st.columns(len(allowed_keys) + 2)
+    for i, k in enumerate(allowed_keys):
+        label = dict(MENU)[k]
+        if cols[i].button(label, use_container_width=True):
+            st.session_state.page = k
+            st.rerun()
+    if cols[-2].button("🔄 Refresh", use_container_width=True):
+        st.rerun()
+    if cols[-1].button("Sair", use_container_width=True):
+        st.session_state.logged_in = False
+        st.session_state.page = "login"
+        st.rerun()
 
-st.markdown("<hr>", unsafe_allow_html=True)
+def _menu_interno():
+    st.image("https://parmaconsultoria.com.br/wp-content/uploads/2023/10/logo-parma-1.png", width=200)
+    st.title("📊 Sistema Parma Consultoria")
+    st.subheader("Bem-vindo! Escolha uma opção para começar.")
+    c1, c2, c3 = st.columns(3)
+    if c1.button("👥 Clientes", use_container_width=True):
+        st.session_state.page = "clientes"; st.rerun()
+    if c2.button("📄 Vagas", use_container_width=True):
+        st.session_state.page = "vagas"; st.rerun()
+    if c3.button("🧑‍💻 Candidatos", use_container_width=True):
+        st.session_state.page = "candidatos"; st.rerun()
+    st.divider()
+    c4, c5, _ = st.columns(3)
+    if c4.button("💼 Comercial", use_container_width=True):
+        st.session_state.page = "comercial"; st.rerun()
+    if c5.button("📜 Logs do Sistema", use_container_width=True):
+        st.session_state.page = "logs"; st.rerun()
 
-# ---------------- ROTEAMENTO ----------------
-pagina = st.session_state["pagina"]
+def main():
+    st.set_page_config(page_title=settings.APP_NAME, page_icon="📦", layout="wide")
+    apply_parma_theme()
 
-if pagina == "Clientes":
-    st.header("👥 Clientes")
-    service = ClientesService()
-    search, page = search_and_pagination()
-    data = service.listar_clientes(page=page, busca=search)
-    render_table(data)
-    with st.form("novo_cliente"):
-        nome = st.text_input("Nome")
-        email = st.text_input("Email")
-        cnpj = st.text_input("CNPJ")
-        if st.form_submit_button("Salvar"):
-            obj = service.criar_cliente({"nome": nome, "email": email, "cnpj": cnpj})
-            st.success(f"Cliente criado: {obj['id']}")
+    if "page" not in st.session_state: st.session_state.page = "login"
+    if "logged_in" not in st.session_state: st.session_state.logged_in = False
+    if "usuario" not in st.session_state: st.session_state.usuario = ""
+    if "permissoes" not in st.session_state: st.session_state.permissoes = []
 
-elif pagina == "Comercial":
-    st.header("💼 Oportunidades Comerciais")
-    service = ComercialService()
-    search, page = search_and_pagination()
-    data = service.listar_oportunidades(page=page, busca=search)
-    render_table(data)
-    with st.form("nova_opp"):
-        cliente_id = st.text_input("ID do Cliente")
-        valor = st.number_input("Valor (R$)", min_value=0.0, step=100.0)
-        fase = st.selectbox("Fase", ["Lead", "Qualificação", "Proposta", "Fechamento", "Ganho", "Perdido"])
-        if st.form_submit_button("Salvar"):
-            obj = service.criar_oportunidade({"cliente_id": cliente_id, "valor": valor, "fase": fase})
-            st.success(f"Oportunidade criada: {obj['id']}")
+    st.caption(f"Ambiente: {settings.ENV}  •  Modo: {'ERRO credenciais Supabase' if settings.DEMO_MODE else 'Supabase conectado'}")
 
-elif pagina == "Vagas":
-    st.header("📄 Vagas")
-    service = RecrutamentoService()
-    search, page = search_and_pagination()
-    data = service.listar_vagas(page=page, busca=search)
-    render_table(data)
-    with st.form("nova_vaga"):
-        titulo = st.text_input("Título da Vaga")
-        status = st.selectbox("Status", ["Aberta", "Fechada", "Pausada"])
-        if st.form_submit_button("Salvar"):
-            obj = service.criar_vaga({"titulo": titulo, "status": status})
-            st.success(f"Vaga criada: {obj['id']}")
+    if st.session_state.page == "login" or not st.session_state.logged_in:
+        st.image("https://parmaconsultoria.com.br/wp-content/uploads/2023/10/logo-parma-1.png", width=200)
+        st.title("🔒 Login - Parma Consultoria")
+        with st.form("login_form"):
+            usuario = st.text_input("Usuário")
+            senha = st.text_input("Senha", type="password")
+            if st.form_submit_button("Entrar", use_container_width=True):
+                ok, perms = login(usuario, senha)
+                if ok:
+                    st.session_state.logged_in = True
+                    st.session_state.usuario = usuario
+                    st.session_state.permissoes = perms
+                    st.session_state.page = "menu"
+                    st.success("✅ Login realizado!")
+                    st.rerun()
+                else:
+                    st.error("❌ Usuário ou senha inválidos.")
+        return
 
-elif pagina == "Candidatos":
-    st.header("🧑‍💻 Candidatos")
-    service = RecrutamentoService()
-    search, page = search_and_pagination()
-    data = service.listar_candidatos(page=page, busca=search)
-    render_table(data)
-    with st.form("novo_candidato"):
-        nome = st.text_input("Nome")
-        email = st.text_input("Email")
-        status = st.selectbox("Status", ["Novo", "Em análise", "Entrevista", "Aprovado", "Reprovado"])
-        if st.form_submit_button("Salvar"):
-            obj = service.criar_candidato({"nome": nome, "email": email, "status": status})
-            st.success(f"Candidato criado: {obj['id']}")
+    # Header/top-nav
+    st.image("https://parmaconsultoria.com.br/wp-content/uploads/2023/10/logo-parma-1.png", width=160)
+    st.caption(f"Usuário: {st.session_state.usuario}")
+
+    all_keys = [k for k,_ in MENU]
+    allowed = []
+    perms = st.session_state.permissoes or []
+    # sempre habilita "menu"
+    if "menu" not in perms: perms = ["menu"] + perms
+    for k, _ in MENU:
+        if k == "menu" or k in perms or (k == "contratos" and "comercial" in perms):
+            allowed.append(k)
+    _top_nav(allowed)
+
+    current = st.session_state.page
+    st.markdown("<hr class='parma-hr' />", unsafe_allow_html=True)
+
+    if current == "menu":
+        _menu_interno()
+    elif current == "clientes":
+        pg_clientes.page()
+    elif current == "vagas":
+        pg_vagas.page()
+    elif current == "candidatos":
+        pg_candidatos.page()
+    elif current == "comercial":
+        pg_comercial.page()
+    elif current == "contratos":
+        pg_contratos.page()
+    elif current == "logs":
+        pg_logs.page()
+    else:
+        st.info("Página não encontrada.")
+
+if __name__ == "__main__":
+    main()
