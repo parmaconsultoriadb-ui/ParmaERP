@@ -1,26 +1,34 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import Optional, Literal
+from typing import Optional
 
+# --------------------------
+# Tabela: vagas
+# --------------------------
+class Vaga(BaseModel):
+    id: Optional[int] = None
+    data_de_abertura: Optional[str] = Field(None, description="DD/MM/YYYY")
+    cliente: Optional[str] = None
+    cargo: Optional[str] = None
+    recrutador: Optional[str] = None
+    status: Optional[str] = None
+    atualizacao: Optional[str] = Field(None, description="DD/MM/YYYY")
+    salario_1: Optional[str] = None
+    salario_2: Optional[str] = None
+    salario_final: Optional[str] = None
+    reposicao: Optional[str] = Field(None, description="'Sim' ou vazio")
+    created_at: Optional[str] = Field(None, description="DD/MM/YYYY HH:MM:SS")
+
+# --------------------------
+# Tabela: candidatos
+# --------------------------
 class Candidato(BaseModel):
-    id: int | None = None
-    cliente: str
-    cargo: str
-    nome: str = Field(min_length=2, max_length=120)
+    id: Optional[int] = None
+    cliente: Optional[str] = None
+    cargo: Optional[str] = None
+    nome: Optional[str] = None
     telefone: Optional[str] = None
     recrutador: Optional[str] = None
-    status: Literal["Enviado", "Validado", "Não validado", "Desistência"] = "Enviado"
-    data_cadastro: Optional[str] = None
-    data_inicio: Optional[str] = None
-
-class Vaga(BaseModel):
-    id: int | None = None
-    cliente: str
-    cargo: str
-    recrutador: Optional[str] = None
-    status: Literal["Aberta", "Ag. Inicio", "Cancelada", "Fechada", "Reaberta", "Pausada"] = "Aberta"
-    data_abertura: Optional[str] = None
-    atualizacao: Optional[str] = None
-    salario1: Optional[str] = None
-    salario2: Optional[str] = None
-    salario_final: Optional[str] = None
-    reposicao: Optional[str] = None
+    status: Optional[str] = None
+    data_cadastro: Optional[str] = Field(None, description="DD/MM/YYYY")
+    data_inicio: Optional[str] = Field(None, description="DD/MM/YYYY")
+    atualizacao: Optional[str] = Field(None, description="DD/MM/YYYY")
