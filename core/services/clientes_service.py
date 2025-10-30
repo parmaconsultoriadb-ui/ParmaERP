@@ -6,6 +6,11 @@ TABLE = "clientes"
 
 class ClientesService:
     def listar(self, page: int = 1, busca: Optional[str] = None) -> List[Dict[str, Any]]:
+        try:
+            page = int(page)
+        except (ValueError, TypeError):
+            page = 1  # fallback seguro
+
         if busca:
             return list_rows(TABLE, page=page, ilike=("nome", busca), order_by="id", desc=True)
         return list_rows(TABLE, page=page, order_by="id", desc=True)
