@@ -7,7 +7,7 @@ import pandas as pd
 
 def page():
     st.header("📜 Logs do Sistema")
-    _, page_num = search_and_pagination()
+    search, page_num = search_and_pagination(prefix="logs")
     data = carregar_logs(page=page_num)
     if not data:
         st.info("Nenhum log registrado.")
