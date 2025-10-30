@@ -13,34 +13,36 @@ def main():
     # CSS GLOBAL — Tema Branco Moderno
     # =====================================================
     st.markdown("""
-    <style>
-    [data-testid="stHeader"] {background-color: white;}
-    div.block-container {padding-top: 1.5rem;}
-    .stTabs [data-baseweb="tab-list"] {gap: 8px;}
-    .stTabs [data-baseweb="tab"] {
-        background-color: #F5F7FA;
-        color: #004488;
-        font-weight: 600;
-        border-radius: 6px;
-        padding: 0.4rem 1rem;
-    }
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        background-color: #004488;
-        color: white;
-    }
-    div.stButton>button {
-        border-radius: 8px;
-        background: #004488;
-        color: white;
-        border: none;
-        padding: 0.6rem 1.2rem;
-        font-weight: 600;
-    }
-    div.stButton>button:hover {
-        background: #0066AA;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+<style>
+[data-testid="stHeader"] {
+    display: none;
+}
+div.block-container {padding-top: 1.5rem;}
+.stTabs [data-baseweb="tab-list"] {gap: 8px;}
+.stTabs [data-baseweb="tab"] {
+    background-color: #F5F7FA;
+    color: #004488;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 0.4rem 1rem;
+}
+.stTabs [data-baseweb="tab"][aria-selected="true"] {
+    background-color: #004488;
+    color: white;
+}
+div.stButton>button {
+    border-radius: 8px;
+    background: #004488;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    font-weight: 600;
+}
+div.stButton>button:hover {
+    background: #0066AA;
+}
+</style>
+""", unsafe_allow_html=True)
 
     # =====================================================
     # LOGIN
