@@ -8,7 +8,7 @@ service = ClientesService()
 
 def page():
     st.header("👥 Clientes")
-    search, page = search_and_pagination()
+    search, page_num = search_and_pagination(prefix="clientes")
     data = service.listar(page=page, busca=search)
     render_table(data)
 
