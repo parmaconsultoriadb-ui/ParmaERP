@@ -1,29 +1,40 @@
 import streamlit as st
+import pandas as pd
 from core.services.clientes_service import ClientesService
 from app.components.filters import search_and_pagination
-from app.components.tables import render_table
 from core.services.log_service import registrar_log
-
-service = ClientesService()
+from common.config import agora_formatado
 
 def page():
-    st.header("👥 Clientes")
+    st.title("👥 Clientes")
+    service = ClientesService()
+
+    # Filtros
     search, page_num = search_and_pagination(prefix="clientes")
-    data = service.listar(page=page, busca=search)
-    render_table(data)
 
-if "datahora" in df.columns:
-    df["datahora"] = pd.to_datetime(df["datahora"], errors="coerce").dt.strftime("%d/%m/%Y %H:%M:%S")
+    # Listagem
+    data = service.listar(page=page_num, busca=search)
+    df = pd.DataFrame(data) if data else pd.DataFrame()
 
-    st.subheader("Novo cliente")
-    with st.form("novo_cliente"):
-        nome = st.text_input("Nome")
-        email = st.text_input("Email (opcional)")
-        cidade = st.text_input("Cidade (opcional)")
-        uf = st.text_input("UF (opcional)", max_chars=2)
-        telefone = st.text_input("Telefone (opcional)")
-        if st.form_submit_button("Salvar"):
-            obj = service.criar({"nome": nome, "email": email or None, "cidade": cidade or None, "uf": uf or None, "telefone": telefone or None})
-            registrar_log("Clientes", "Adicionar", item_id=str(obj.get("id")), detalhe=f"Cliente {nome} criado.")
-            st.success(f"Cliente criado: {obj.get('id')}")
-            st.rerun()
+    if not df.empty:
+        if "criado_em" in df.columns:
+            df["criado_em"] = pd.to_datetime(df["criado_em"], errors="coerce").dt.strftime("%d/%m/%Y")
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    else:
+        st.info("Nenhum cliente encontrado.")
+
+    # Formulário de cadastro
+    with st.expander("➕ Novo Cliente"):
+        nome = st.text_input("Nome do Cliente", key="cli_nome")
+        email = st.text_input("Email", key="cli_email")
+        telefone = st.text_input("Telefone", key="cli_telefone")
+
+        if st.button("Salvar Cliente", use_container_width=True):
+            if nome:
+                novo = {"nome": nome, "email": email, "telefone": telefone, "criado_em": agora_formatado()}
+                service.criar(novo)
+                registrar_log("Clientes", "Criar", campo="nome", valor_novo=nome)
+                st.success("✅ Cliente cadastrado com sucesso!")
+                st.rerun()
+            else:
+                st.warning("Informe ao menos o nome do cliente.")
