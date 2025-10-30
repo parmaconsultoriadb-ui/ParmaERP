@@ -4,13 +4,11 @@ from common.config import settings
 
 try:
     from supabase import create_client, Client  # type: ignore
-except Exception:  # lib não instalada ou ambiente limitado
+except Exception:
     Client = object  # fallback de tipo
 
-
 @lru_cache(maxsize=1)
-def get_supabase() -> Optional["Client"]:
-    """Retorna o cliente do Supabase ou None em modo demo."""
+def get_supabase() -> "Client":
     if settings.DEMO_MODE:
-        return None
+        raise RuntimeError("Credenciais do Supabase ausentes. Defina SUPABASE_URL e SUPABASE_KEY.")
     return create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)  # type: ignore
