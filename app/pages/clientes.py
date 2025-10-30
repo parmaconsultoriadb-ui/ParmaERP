@@ -12,6 +12,9 @@ def page():
     data = service.listar(page=page, busca=search)
     render_table(data)
 
+if "datahora" in df.columns:
+    df["datahora"] = pd.to_datetime(df["datahora"], errors="coerce").dt.strftime("%d/%m/%Y %H:%M:%S")
+
     st.subheader("Novo cliente")
     with st.form("novo_cliente"):
         nome = st.text_input("Nome")
