@@ -7,4 +7,4 @@ def search_and_pagination(default_page: int = 1):
     with col2:
         page = st.number_input("Página", min_value=1, value=st.session_state.get("page", default_page), step=1)
     st.session_state["page"] = int(page)
-    return search or None, int(page)
+    return (search or None), int(page)
