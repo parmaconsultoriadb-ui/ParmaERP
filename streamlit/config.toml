@@ -1,8 +1,0 @@
-[server]
-headless = true
-fileWatcherType = "auto"
-enableCORS = false
-enableXsrfProtection = false
-
-[app]
-main_script = "app/app.py"
