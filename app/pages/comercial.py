@@ -40,7 +40,7 @@ def page():
                 st.rerun()
 
     if modo == "Lista":
-        search, page_num = search_and_pagination()
+        search, page_num = search_and_pagination(prefix="comercial")
         data = service.listar(page=page_num, busca_status=search)
         render_table(data)
     else:
