@@ -56,6 +56,10 @@ def main():
     usuario = st.session_state.get("usuario", "Usuário")
     empresa = "Parma Consultoria"
 
+    nav_container = st.container()
+    with nav_container:
+        st.image(LOGO_URL, width=180)
+
     st.markdown("---")
 
     # =====================================================
