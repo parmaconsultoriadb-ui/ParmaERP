@@ -1,9 +1,8 @@
-from adapters.supabase_repo import insert_row
+from adapters.supabase_repo import insert_row, list_rows
 from datetime import datetime
 import streamlit as st
 
 def registrar_log(aba, acao, item_id=None, campo=None, valor_anterior=None, valor_novo=None, detalhe=None):
-    # Monta o log de forma segura
     novo_log = {
         "datahora": datetime.now().isoformat(timespec="seconds"),
         "usuario": st.session_state.get("usuario", "admin"),
@@ -15,8 +14,6 @@ def registrar_log(aba, acao, item_id=None, campo=None, valor_anterior=None, valo
         "valor_novo": str(valor_novo) if valor_novo else None,
         "detalhe": str(detalhe) if detalhe else None
     }
-
-    # Remove campos None, caso a tabela não os aceite
     novo_log = {k: v for k, v in novo_log.items() if v is not None}
 
     try:
