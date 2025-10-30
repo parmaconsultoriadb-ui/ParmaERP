@@ -19,6 +19,7 @@ class Settings:
     TIMEZONE: timezone = timezone(timedelta(hours=-3))  # GMT-3
     DATE_FORMAT: str = "%d/%m/%Y"
     DATETIME_FORMAT: str = "%d/%m/%Y %H:%M:%S"
+    PAGE_SIZE: int = 20  # 🔹 usado na paginação padrão (supabase_repo)
 
 settings = Settings()
 
