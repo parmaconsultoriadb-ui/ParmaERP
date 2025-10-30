@@ -39,18 +39,20 @@ def _menu_interno():
     st.image("https://parmaconsultoria.com.br/wp-content/uploads/2023/10/logo-parma-1.png", width=200)
     st.title("📊 Sistema Parma Consultoria")
     st.subheader("Bem-vindo! Escolha uma opção para começar.")
+
     c1, c2, c3 = st.columns(3)
-    if c1.button("👥 Clientes", use_container_width=True):
+    if c1.button("👥 Clientes", key="btn_clientes", use_container_width=True):
         st.session_state.page = "clientes"; st.rerun()
-    if c2.button("📄 Vagas", use_container_width=True):
+    if c2.button("📄 Vagas", key="btn_vagas", use_container_width=True):
         st.session_state.page = "vagas"; st.rerun()
-    if c3.button("🧑‍💻 Candidatos", use_container_width=True):
+    if c3.button("🧑‍💻 Candidatos", key="btn_candidatos", use_container_width=True):
         st.session_state.page = "candidatos"; st.rerun()
+
     st.divider()
     c4, c5, _ = st.columns(3)
-    if c4.button("💼 Comercial", use_container_width=True):
+    if c4.button("💼 Comercial", key="btn_comercial", use_container_width=True):
         st.session_state.page = "comercial"; st.rerun()
-    if c5.button("📜 Logs do Sistema", use_container_width=True):
+    if c5.button("📜 Logs do Sistema", key="btn_logs", use_container_width=True):
         st.session_state.page = "logs"; st.rerun()
 
 def main():
