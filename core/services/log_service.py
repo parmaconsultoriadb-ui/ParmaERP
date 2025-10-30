@@ -4,7 +4,7 @@ import streamlit as st
 
 def registrar_log(aba, acao, item_id=None, campo=None, valor_anterior=None, valor_novo=None, detalhe=None):
     novo_log = {
-        "datahora": datetime.now().isoformat(timespec="seconds"),
+        "datahora": agora_formatado(),
         "usuario": st.session_state.get("usuario", "admin"),
         "aba": str(aba),
         "acao": str(acao),
