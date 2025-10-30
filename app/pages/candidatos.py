@@ -1,32 +1,40 @@
 import streamlit as st
+import pandas as pd
 from core.services.recrutamento_service import RecrutamentoService
 from app.components.filters import search_and_pagination
-from app.components.tables import render_table
 from core.services.log_service import registrar_log
-from datetime import date
+from common.config import agora_formatado
 
 service = RecrutamentoService()
 RECRUTADORES_PADRAO = ["A definir", "Lorrayne", "Kaline", "Nikole", "Leila", "Julia"]
 
 def page():
-    st.header("🧑‍💻 Candidatos")
-    search, page_num = search_and_pagination(prefix="candidatos")
-    data = service.candidatos_listar(page=page_num, busca_nome=search)
-    render_table(data)
+    st.title("🧑‍💼 Candidatos")
+    service = RecrutamentoService()
 
-    st.subheader("Novo candidato")
-    with st.form("novo_candidato"):
-        cliente = st.text_input("Cliente")
-        cargo = st.text_input("Cargo")
-        nome = st.text_input("Nome")
-        telefone = st.text_input("Telefone (opcional)")
-        recrutador = st.selectbox("Recrutador", RECRUTADORES_PADRAO)
-        status = st.selectbox("Status", ["Enviado", "Validado", "Não validado", "Desistência"])
-        if st.form_submit_button("Salvar"):
-            obj = service.candidato_criar({
-                "cliente": cliente, "cargo": cargo, "nome": nome, "telefone": telefone or None,
-                "recrutador": recrutador, "status": status, "data_cadastro": date.today().strftime("%Y-%m-%d")
-            })
-            registrar_log("Candidatos", "Adicionar", item_id=str(obj.get("id")), detalhe=f"Candidato {nome} para {cliente} - {cargo}")
-            st.success(f"Candidato criado: {obj.get('id')}")
-            st.rerun()
+    search, page_num = search_and_pagination(prefix="candidatos")
+
+    data = service.listar_candidatos(page=page_num, busca=search)
+    df = pd.DataFrame(data) if data else pd.DataFrame()
+
+    if not df.empty:
+        if "criado_em" in df.columns:
+            df["criado_em"] = pd.to_datetime(df["criado_em"], errors="coerce").dt.strftime("%d/%m/%Y")
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    else:
+        st.info("Nenhum candidato encontrado.")
+
+    with st.expander("➕ Novo Candidato"):
+        nome = st.text_input("Nome", key="cand_nome")
+        email = st.text_input("Email", key="cand_email")
+        telefone = st.text_input("Telefone", key="cand_telefone")
+
+        if st.button("Salvar Candidato", use_container_width=True):
+            if nome:
+                novo = {"nome": nome, "email": email, "telefone": telefone, "criado_em": agora_formatado()}
+                service.criar_candidato(novo)
+                registrar_log("Candidatos", "Criar", campo="nome", valor_novo=nome)
+                st.success("✅ Candidato cadastrado com sucesso!")
+                st.rerun()
+            else:
+                st.warning("Informe ao menos o nome do candidato.")
