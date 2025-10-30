@@ -1,27 +1,32 @@
 import streamlit as st
 from core.services.recrutamento_service import RecrutamentoService
-from app.components.tables import render_table
 from app.components.filters import search_and_pagination
-
-st.set_page_config(page_title="Candidatos", page_icon="🧑‍💻", layout="wide")
-st.title("Recrutamento • Candidatos")
+from app.components.tables import render_table
+from core.services.log_service import registrar_log
+from datetime import date
 
 service = RecrutamentoService()
+RECRUTADORES_PADRAO = ["A definir", "Lorrayne", "Kaline", "Nikole", "Leila", "Julia"]
 
-search, page = search_and_pagination()
-with st.spinner("Carregando candidatos..."):
-    data = service.listar_candidatos(page=page, busca=search)
-render_table(data)
+def page():
+    st.header("🧑‍💻 Candidatos")
+    search, page_num = search_and_pagination()
+    data = service.candidatos_listar(page=page_num, busca_nome=search)
+    render_table(data)
 
-st.subheader("Novo candidato")
-with st.form("novo_candidato"):
-    nome = st.text_input("Nome")
-    email = st.text_input("Email (opcional)")
-    status = st.selectbox("Status", ["Novo", "Em análise", "Entrevista", "Aprovado", "Reprovado"])
-    submitted = st.form_submit_button("Salvar")
-    if submitted:
-        try:
-            obj = service.criar_candidato({"nome": nome, "email": email or None, "status": status})
-            st.success(f"Candidato criado: {obj['id']}")
-        except Exception as e:
-            st.error(f"Erro: {e}")
+    st.subheader("Novo candidato")
+    with st.form("novo_candidato"):
+        cliente = st.text_input("Cliente")
+        cargo = st.text_input("Cargo")
+        nome = st.text_input("Nome")
+        telefone = st.text_input("Telefone (opcional)")
+        recrutador = st.selectbox("Recrutador", RECRUTADORES_PADRAO)
+        status = st.selectbox("Status", ["Enviado", "Validado", "Não validado", "Desistência"])
+        if st.form_submit_button("Salvar"):
+            obj = service.candidato_criar({
+                "cliente": cliente, "cargo": cargo, "nome": nome, "telefone": telefone or None,
+                "recrutador": recrutador, "status": status, "data_cadastro": date.today().strftime("%Y-%m-%d")
+            })
+            registrar_log("Candidatos", "Adicionar", item_id=str(obj.get("id")), detalhe=f"Candidato {nome} para {cliente} - {cargo}")
+            st.success(f"Candidato criado: {obj.get('id')}")
+            st.rerun()
