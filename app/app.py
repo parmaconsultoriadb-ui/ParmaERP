@@ -22,7 +22,8 @@ def main():
         font-family: 'Inter', sans-serif;
     }
     div[data-testid="stToolbar"] {visibility: hidden;}
-    [data-testid="stHeader"] {background-color: var(--color-primary);}
+    [data-testid="stHeader"] {
+    background-color: white;}
     div.block-container {padding-top: 2rem;}
     .stTabs [data-baseweb="tab-list"] {gap: 10px;}
     .stTabs [data-baseweb="tab"] {
