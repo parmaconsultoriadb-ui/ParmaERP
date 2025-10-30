@@ -1,17 +1,18 @@
 import streamlit as st
+import pandas as pd
 from core.services.log_service import carregar_logs
 from app.components.filters import search_and_pagination
-from app.components.tables import render_table
-from common.utils import download_button
-import pandas as pd
 
 def page():
-    st.header("📜 Logs do Sistema")
+    st.title("📜 Logs do Sistema")
+
     search, page_num = search_and_pagination(prefix="logs")
     data = carregar_logs(page=page_num)
-    if not data:
-        st.info("Nenhum log registrado.")
-        return
-    render_table(data)
-    df = pd.DataFrame(data)
-    download_button(df, "logs.csv", label="⬇️ Baixar Logs")
+    df = pd.DataFrame(data) if data else pd.DataFrame()
+
+    if not df.empty:
+        if "datahora" in df.columns:
+            df["datahora"] = pd.to_datetime(df["datahora"], errors="coerce").dt.strftime("%d/%m/%Y %H:%M:%S")
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    else:
+        st.info("Nenhum log encontrado.")
